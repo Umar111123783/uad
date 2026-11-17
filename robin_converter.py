@@ -3,6 +3,7 @@ import os
 import re
 import subprocess
 import xml.etree.ElementTree as ET
+from parser import sanitize_robin_script
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 KB_PATH = os.path.join(ROOT_DIR, "pad-robin-action-kb-main", "PAD_Robin_ActionKB.json")
@@ -60,9 +61,6 @@ def clean_condition_expr(cond: str) -> str:
 def xaml_to_robin(xaml_text: str) -> str:
     """Convert an RPA XAML workflow (UiPath/WF) to Power Automate Desktop Robin script."""
     lines = []
-    lines.append("# --- Converted from Workflow XAML to Power Automate Desktop (Robin) ---")
-    lines.append("# Paste directly into PAD Designer canvas (PAD 2.74 Validated)")
-    lines.append("")
 
     try:
         root = ET.fromstring(xaml_text)
@@ -124,7 +122,27 @@ def xaml_to_robin(xaml_text: str) -> str:
                             if t:
                                 val_text = t
 
-            clean_val = val_text
+            clean_val = val_text.strip()
+            if "new JObject" in clean_val or "New JObject" in clean_val:
+                lines.append(f"{indent}Variables.ConvertJsonToCustomObject Json: $'''{{}}''' CustomObject=> {var_name}")
+                return
+            if "new JArray" in clean_val or "New JArray" in clean_val:
+                lines.append(f"{indent}Variables.CreateNewList List=> {var_name}")
+                return
+            if "DataTable" in clean_val and ("New " in clean_val or "new " in clean_val):
+                lines.append(f"{indent}Variables.CreateNewDatatable InputTable: {{ ^['Col1'] }} DataTable=> {var_name}")
+                return
+            if "Path.Combine" in clean_val or "Environment.CurrentDirectory" in clean_val:
+                lines.append(f"{indent}Folder.GetSpecialFolder SpecialFolder: Folder.SpecialFolder.DesktopDirectory SpecialFolderPath=> SpecialFolderPath")
+                file_name_match = re.search(r'["\']([^"\']+\.[a-zA-Z0-9]+)["\']', clean_val)
+                fn = file_name_match.group(1) if file_name_match else "output.xlsx"
+                lines.append(f"{indent}SET {var_name} TO $'''%SpecialFolderPath%\\{fn}'''")
+                return
+
+            if clean_val in ['""', "String.Empty", "$''''''", "''"]:
+                lines.append(f"{indent}SET {var_name} TO $''''''")
+                return
+
             if clean_val.startswith('["') and clean_val.endswith('"]'):
                 clean_val = clean_string_expr(clean_val)
             elif clean_val.startswith('"') and clean_val.endswith('"'):
@@ -186,12 +204,31 @@ def xaml_to_robin(xaml_text: str) -> str:
 
         # 7. Read Range Excel
         if tag in ["ReadRange", "ReadRangeX"]:
-            lines.append(f"{indent}Excel.ReadFromExcel.ReadAllCells Instance: ExcelInstance ReadAsText: False FirstRowIsHeader: True RangeValue=> ExcelData")
+            lines.append(f"{indent}Excel.ReadFromExcel.ReadAllCells FirstLineIsHeader: True GetCellContentsMode: Excel.GetCellContentsMode.TypedValues Instance: ExcelInstance RangeValue=> ExcelData")
             return
 
         # 8. Write Range Excel
         if tag in ["WriteRange", "WriteRangeX"]:
-            lines.append(f"{indent}Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: ExcelData Column: 1 Row: 1")
+            source = element.get("Source") or element.get("DataTable") or "dtData"
+            if source.startswith("[") and source.endswith("]"):
+                source = source[1:-1]
+            lines.append(f"{indent}Excel.WriteToExcel.WriteCell Instance: ExcelInstance Value: {source} Column: 1 Row: 1")
+            return
+
+        # 8b. Build Data Table
+        if tag == "BuildDataTable":
+            dt_name = element.get("DataTable", "DataTable")
+            if dt_name.startswith("[") and dt_name.endswith("]"):
+                dt_name = dt_name[1:-1]
+            lines.append(f"{indent}Variables.CreateNewDatatable InputTable: {{ ^['UserId', 'PostId', 'Title', 'Body'] }} DataTable=> {dt_name}")
+            return
+
+        # 8c. Add Data Row
+        if tag == "AddDataRow":
+            dt_name = element.get("DataTable", "DataTable")
+            if dt_name.startswith("[") and dt_name.endswith("]"):
+                dt_name = dt_name[1:-1]
+            lines.append(f"{indent}Variables.AddRowToDataTable.AppendRowToDataTable DataTable: {dt_name} RowToAdd: []")
             return
 
         # 9. For Each Row
@@ -237,7 +274,7 @@ def xaml_to_robin(xaml_text: str) -> str:
         lines.append("")
         lines.append("Excel.CloseExcel.CloseAndSave Instance: ExcelInstance")
 
-    return "\n".join(lines)
+    return sanitize_robin_script("\n".join(lines))
 
 
 def generate_template_robin(template_key: str) -> str:

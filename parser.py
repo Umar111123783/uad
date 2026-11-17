@@ -223,16 +223,34 @@ def sanitize_robin_script(
 ) -> str:
     """
     Clean HTML entities/anchor tags, metadata banners, decorative dividers,
-    trailing inline # XPath comments, and optionally # node_id metadata or blank lines.
+    trailing inline # XPath comments, and normalize Robin syntax to be 100% paste-safe in PAD.
     """
     if not script:
         return ""
 
     script = _clean_html_corruption(script)
+
+    # 1. Remove markdown fences (```robin, ```text, ```)
+    script = re.sub(r'^```[a-zA-Z0-9_-]*\s*$', '', script, flags=re.MULTILINE)
+
+    # 2. Collapse multi-line string dialogs into a single line with \r\n so that
+    # line-based actions are never split across lines.
+    def _collapse_str(m: re.Match) -> str:
+        s = m.group(1)
+        # remove any # comments stuck inside the string
+        s = re.sub(r'#\s*node_id=[^\r\n]*', '', s)
+        s = re.sub(r'[\r\n]+', r'\\r\\n', s)
+        return "$'''" + s + "'''"
+
+    script = re.sub(r"\$'''(.*?)'''", _collapse_str, script, flags=re.DOTALL)
+
     cleaned_lines: List[str] = []
     in_control_repo = False
+    has_desktop_folder = False
+
     for raw_line in script.splitlines():
-        if not raw_line.strip():
+        stripped = raw_line.strip()
+        if not stripped:
             if preserve_blank_lines and cleaned_lines and cleaned_lines[-1] != "":
                 cleaned_lines.append("")
             continue
@@ -259,6 +277,34 @@ def sanitize_robin_script(
         line = re.sub(r'\s+#\s*XPath:\s*.*$', '', raw_line).rstrip()
         if not line.strip():
             continue
+
+        # 3. Syntax Auto-Corrections for PAD 2.74 paste compliance:
+        # LOOP var IN list -> LOOP FOREACH var IN list
+        line = re.sub(r'^(\s*)LOOP\s+(?!FOREACH|WHILE)([a-zA-Z0-9_]+)\s+IN\s+([a-zA-Z0-9_]+)', r'\1LOOP FOREACH \2 IN \3', line, flags=re.IGNORECASE)
+
+        # Excel WriteFromDataTable -> WriteCell
+        line = re.sub(
+            r'Excel\.WriteToExcel\.WriteFromDataTable\s+Instance:\s*([a-zA-Z0-9_]+)\s+DataTable:\s*([a-zA-Z0-9_]+)[^\n]*',
+            r'Excel.WriteToExcel.WriteCell Instance: \1 Value: \2 Column: 1 Row: 1',
+            line
+        )
+
+        # Empty string: SET var TO $'' -> SET var TO $''''''
+        line = re.sub(r"SET\s+([a-zA-Z0-9_]+)\s+TO\s+\$''(?!')", r"SET \1 TO $''''''", line)
+
+        # Excel ReadAllCells argument fix
+        line = re.sub(
+            r'Excel\.ReadFromExcel\.ReadAllCells\s+Instance:\s*([a-zA-Z0-9_]+)\s+ReadAsText:\s*(?:True|False)\s+FirstRowIsHeader:\s*(?:True|False)\s+RangeValue=>\s*([a-zA-Z0-9_]+)',
+            r'Excel.ReadFromExcel.ReadAllCells FirstLineIsHeader: True GetCellContentsMode: Excel.GetCellContentsMode.TypedValues Instance: \1 RangeValue=> \2',
+            line
+        )
+
+        # Environment.CurrentDirectory handling
+        if "%Environment.CurrentDirectory%" in line:
+            if not has_desktop_folder:
+                cleaned_lines.append("Folder.GetSpecialFolder SpecialFolder: Folder.SpecialFolder.DesktopDirectory SpecialFolderPath=> SpecialFolderPath")
+                has_desktop_folder = True
+            line = line.replace("%Environment.CurrentDirectory%", "%SpecialFolderPath%")
 
         cleaned_lines.append(line)
 

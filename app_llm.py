@@ -157,9 +157,9 @@ with st.sidebar:
 
     st.subheader("🧾 Output Format")
     include_node_metadata = st.checkbox(
-        "Include # node_id metadata lines",
-        value=True,
-        help="Prefix each Robin action with `# node_id=<Bot>.<index>.<hex>; package=...; action=...; resolved=...` separated by blank lines.",
+        "Include # node_id metadata lines (debugging only)",
+        value=False,
+        help="Only check this for AST debugging. Unchecked produces clean, 100% paste-ready Robin syntax.",
     )
     st.markdown("---")
 
