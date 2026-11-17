@@ -1,0 +1,196 @@
+# node_id=CrudOperation.00001.2e2a4d37; package=String; action=assign; resolved=assign
+SET responseString TO $''
+
+# node_id=CrudOperation.00002.4a6f8270; package=Json; action=deserializeJson; resolved=convert json to custom object
+Variables.ConvertJsonToCustomObject Json: $'''{}''' CustomObject=> jsonObj
+
+# node_id=CrudOperation.00003.88cf9546; package=List; action=createNewList; resolved=create new list
+Variables.CreateNewList List=> jsonArray
+
+# node_id=CrudOperation.00004.29118ea8; package=Number; action=assignToNumber; resolved=assign
+SET postId TO 1
+
+# node_id=CrudOperation.00005.374ff6b8; package=Web; action=invokeWebService; resolved=invoke web service
+Web.InvokeWebService.InvokeWebService Url: $'''https://jsonplaceholder.typicode.com/posts''' Method: Web.Method.Get Accept: $'''application/json''' ContentType: $'''application/json''' ConnectionTimeout: 6 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: True UserAgent: $'''Mozilla/5.0''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False ResponseHeaders=> ResponseHeaders Response=> responseString StatusCode=> responseStatus
+
+# node_id=CrudOperation.00006.44c2d0e5; package=If; action=if; resolved=if
+IF responseStatus < 200 OR responseStatus >= 300 THEN
+    # node_id=CrudOperation.00007.5a90b919; package=MessageBox; action=messageBox; resolved=show message
+    Display.ShowMessageDialog.ShowMessage Title: $'''API Error''' Message: $'''HTTP request failed with status: %responseStatus% %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+    # node_id=CrudOperation.00008.5e03ada9; package=FlowControl; action=stopFlow; resolved=stop flow
+    EXIT Code: 0
+END
+
+# node_id=CrudOperation.00009.ba5f16e1; package=Json; action=deserializeJson; resolved=convert json to custom object
+Variables.ConvertJsonToCustomObject Json: responseString CustomObject=> jsonArray
+
+# node_id=CrudOperation.00010.ef22ff09; package=Number; action=assignToNumber; resolved=assign
+SET count TO jsonArray.Count
+
+# node_id=CrudOperation.00011.4950fc5a; package=MessageBox; action=messageBox; resolved=show message
+Display.ShowMessageDialog.ShowMessage Title: $'''Information''' Message: $'''Total Posts: %count%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00012.fd24c59a; package=Display; action=inputDialog; resolved=input dialog
+Display.InputDialog Title: $'''Get Single Post Details''' Message: $'''Enter the post id''' InputType: Display.InputType.SingleLine IsTopMost: False UserInput=> postIdText ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00013.28268c15; package=If; action=if; resolved=if
+IF ButtonPressed = $'''OK''' THEN
+    # node_id=CrudOperation.00014.a0b6a263; package=Text; action=toNumber; resolved=convert text to number
+    Text.ToNumber Text: postIdText Number=> postId
+END
+
+# node_id=CrudOperation.00015.f12dccd5; package=Web; action=invokeWebService; resolved=invoke web service
+Web.InvokeWebService.InvokeWebService Url: $'''https://jsonplaceholder.typicode.com/posts/%postId%''' Method: Web.Method.Get Accept: $'''application/json''' ContentType: $'''application/json''' ConnectionTimeout: 6 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: True UserAgent: $'''Mozilla/5.0''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False ResponseHeaders=> ResponseHeaders Response=> responseString StatusCode=> responseStatus
+
+# node_id=CrudOperation.00016.1c8e5b48; package=If; action=if; resolved=if
+IF responseStatus < 200 OR responseStatus >= 300 THEN
+    # node_id=CrudOperation.00017.9d469986; package=MessageBox; action=messageBox; resolved=show message
+    Display.ShowMessageDialog.ShowMessage Title: $'''API Error''' Message: $'''HTTP request failed with status: %responseStatus% %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+    # node_id=CrudOperation.00018.6bbd1e44; package=FlowControl; action=stopFlow; resolved=stop flow
+    EXIT Code: 0
+END
+
+# node_id=CrudOperation.00019.b0e9388d; package=Json; action=deserializeJson; resolved=convert json to custom object
+Variables.ConvertJsonToCustomObject Json: responseString CustomObject=> jsonObj
+
+# node_id=CrudOperation.00020.68d6b891; package=MessageBox; action=messageBox; resolved=show message
+Display.ShowMessageDialog.ShowMessage Title: $'''Post Details''' Message: $'''Title :%jsonObj['title']%
+
+# node_id=CrudOperation.00021.e8eaa4ef; package=Core; action=action; resolved=action
+Body :%jsonObj['body']%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00022.1d1d4682; package=Display; action=inputDialog; resolved=input dialog
+Display.InputDialog Title: $'''Create New Post''' Message: $'''Enter Post Title''' InputType: Display.InputType.SingleLine IsTopMost: False UserInput=> newPostTitle ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00023.80c6ff78; package=If; action=if; resolved=if
+IF ButtonPressed = $'''OK''' THEN
+    # node_id=CrudOperation.00024.f3fde8f1; package=Display; action=inputDialog; resolved=input dialog
+    Display.InputDialog Title: $'''Create New Post''' Message: $'''Enter Post Description''' InputType: Display.InputType.SingleLine IsTopMost: False UserInput=> newPostDesc ButtonPressed=> ButtonPressed
+END
+
+# node_id=CrudOperation.00025.898605b0; package=String; action=assign; resolved=assign
+SET requestBody TO $'''{"title":"%newPostTitle%","body":"%newPostDesc%","userId":1}'''
+
+# node_id=CrudOperation.00026.a886c610; package=Web; action=invokeWebService; resolved=invoke web service
+Web.InvokeWebService.InvokeWebService Url: $'''https://jsonplaceholder.typicode.com/posts''' Method: Web.Method.Post Accept: $'''application/json''' ContentType: $'''application/json''' ConnectionTimeout: 6 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: True UserAgent: $'''Mozilla/5.0''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False RequestBody: requestBody ResponseHeaders=> ResponseHeaders Response=> responseString StatusCode=> responseStatus
+
+# node_id=CrudOperation.00027.9bd4f5df; package=If; action=if; resolved=if
+IF responseStatus < 200 OR responseStatus >= 300 THEN
+    # node_id=CrudOperation.00028.c5e09369; package=MessageBox; action=messageBox; resolved=show message
+    Display.ShowMessageDialog.ShowMessage Title: $'''API Error''' Message: $'''HTTP request failed with status: %responseStatus% %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+    # node_id=CrudOperation.00029.e1878ca0; package=FlowControl; action=stopFlow; resolved=stop flow
+    EXIT Code: 0
+END
+
+# node_id=CrudOperation.00030.75041f04; package=MessageBox; action=messageBox; resolved=show message
+Display.ShowMessageDialog.ShowMessage Title: $'''Created New Post''' Message: $'''Created new Post response : %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00031.aad4a1b3; package=Display; action=inputDialog; resolved=input dialog
+Display.InputDialog Title: $'''Update Post''' Message: $'''Enter Updated Title for Post 1''' InputType: Display.InputType.SingleLine IsTopMost: False UserInput=> newPostTitle ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00032.076e190e; package=If; action=if; resolved=if
+IF ButtonPressed = $'''OK''' THEN
+    # node_id=CrudOperation.00033.6cf7a248; package=Display; action=inputDialog; resolved=input dialog
+    Display.InputDialog Title: $'''Update Post''' Message: $'''Enter Updated Description for Post 1''' InputType: Display.InputType.SingleLine IsTopMost: False UserInput=> newPostDesc ButtonPressed=> ButtonPressed
+END
+
+# node_id=CrudOperation.00034.57fc1ff8; package=String; action=assign; resolved=assign
+SET requestBody TO $'''{"title":"%newPostTitle%","body":"%newPostDesc%","id":1,"userId":1}'''
+
+# node_id=CrudOperation.00035.f26e6aed; package=Web; action=invokeWebService; resolved=invoke web service
+Web.InvokeWebService.InvokeWebService Url: $'''https://jsonplaceholder.typicode.com/posts/1''' Method: Web.Method.Put Accept: $'''application/json''' ContentType: $'''application/json''' ConnectionTimeout: 6 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: True UserAgent: $'''Mozilla/5.0''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False RequestBody: requestBody ResponseHeaders=> ResponseHeaders Response=> responseString StatusCode=> responseStatus
+
+# node_id=CrudOperation.00036.3fdefa05; package=If; action=if; resolved=if
+IF responseStatus < 200 OR responseStatus >= 300 THEN
+    # node_id=CrudOperation.00037.72185c41; package=MessageBox; action=messageBox; resolved=show message
+    Display.ShowMessageDialog.ShowMessage Title: $'''API Error''' Message: $'''HTTP request failed with status: %responseStatus% %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+    # node_id=CrudOperation.00038.30967f19; package=FlowControl; action=stopFlow; resolved=stop flow
+    EXIT Code: 0
+END
+
+# node_id=CrudOperation.00039.97d27c3f; package=MessageBox; action=messageBox; resolved=show message
+Display.ShowMessageDialog.ShowMessage Title: $'''Update Post''' Message: $'''Update Post details API response: %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00040.5fdeb27e; package=Display; action=inputDialog; resolved=input dialog
+Display.InputDialog Title: $'''Delete Post''' Message: $'''Enter Post Id to delete''' InputType: Display.InputType.SingleLine IsTopMost: False UserInput=> delPostId ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00041.e19f32b0; package=Web; action=invokeWebService; resolved=invoke web service
+Web.InvokeWebService.InvokeWebService Url: $'''https://jsonplaceholder.typicode.com/posts/%delPostId%''' Method: Web.Method.Delete Accept: $'''application/json''' ContentType: $'''application/json''' ConnectionTimeout: 10 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: True UserAgent: $'''Mozilla/5.0''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False ResponseHeaders=> ResponseHeaders Response=> responseString StatusCode=> responseStatus
+
+# node_id=CrudOperation.00042.3a8dcfac; package=If; action=if; resolved=if
+IF responseStatus < 200 OR responseStatus >= 300 THEN
+    # node_id=CrudOperation.00043.da773b8e; package=MessageBox; action=messageBox; resolved=show message
+    Display.ShowMessageDialog.ShowMessage Title: $'''API Error''' Message: $'''HTTP request failed with status: %responseStatus% %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+    # node_id=CrudOperation.00044.48d33c81; package=FlowControl; action=stopFlow; resolved=stop flow
+    EXIT Code: 0
+END
+
+# node_id=CrudOperation.00045.b0cc77b7; package=MessageBox; action=messageBox; resolved=show message
+Display.ShowMessageDialog.ShowMessage Title: $'''Delete Result''' Message: $'''Post wit id: %delPostId%  has been deleted!''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00046.3b5934d9; package=MessageBox; action=messageBox; resolved=show message
+Display.ShowMessageDialog.ShowMessage Title: $'''Information''' Message: $'''Calling Updated Post list for User 1''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+# node_id=CrudOperation.00047.2a8347ab; package=Web; action=invokeWebService; resolved=invoke web service
+Web.InvokeWebService.InvokeWebService Url: $'''https://jsonplaceholder.typicode.com/posts?userId=1''' Method: Web.Method.Get Accept: $'''application/json''' ContentType: $'''application/json''' ConnectionTimeout: 6 FollowRedirection: True ClearCookies: False FailOnErrorStatus: False EncodeRequestBody: True UserAgent: $'''Mozilla/5.0''' Encoding: Web.Encoding.AutoDetect AcceptUntrustedCertificates: False ResponseHeaders=> ResponseHeaders Response=> responseString StatusCode=> responseStatus
+
+# node_id=CrudOperation.00048.8b0751f6; package=If; action=if; resolved=if
+IF responseStatus < 200 OR responseStatus >= 300 THEN
+    # node_id=CrudOperation.00049.c6623ca6; package=MessageBox; action=messageBox; resolved=show message
+    Display.ShowMessageDialog.ShowMessage Title: $'''API Error''' Message: $'''HTTP request failed with status: %responseStatus% %responseString%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+
+    # node_id=CrudOperation.00050.08396791; package=FlowControl; action=stopFlow; resolved=stop flow
+    EXIT Code: 0
+END
+
+# node_id=CrudOperation.00051.fe97e331; package=Json; action=deserializeJson; resolved=convert json to custom object
+Variables.ConvertJsonToCustomObject Json: responseString CustomObject=> jsonArray
+
+# node_id=CrudOperation.00052.23a39e90; package=Loop; action=loop; resolved=loop
+LOOP currentJToken IN jsonArray
+    # node_id=CrudOperation.00053.fd7cb3bd; package=MessageBox; action=messageBox; resolved=show message
+    Display.ShowMessageDialog.ShowMessage Title: $'''User 1 Post''' Message: $'''Title: %currentJToken['title']%
+
+# node_id=CrudOperation.00054.b7c1fe7f; package=Core; action=action; resolved=action
+Desc :%currentJToken['body']%
+
+# node_id=CrudOperation.00055.bd1e865f; package=Core; action=action; resolved=action
+Id: %currentJToken['id']%''' Icon: Display.Icon.None Buttons: Display.Buttons.OK DefaultButton: Display.DefaultButton.Button1 IsTopMost: False ButtonPressed=> ButtonPressed
+END
+
+# node_id=CrudOperation.00056.5c30c438; package=DataTable; action=buildDataTable; resolved=create new datatable
+Variables.CreateNewDatatable InputTable: { ^['UserId', 'PostId', 'Title', 'Body'] } DataTable=> dtPosts
+
+# node_id=CrudOperation.00057.d76b1be0; package=Loop; action=loop; resolved=loop
+LOOP currentJToken IN jsonArray
+    # node_id=CrudOperation.00058.9c6607a3; package=DataTable; action=addDataRow; resolved=add row to datatable
+    Variables.AddRowToDataTable.AppendRowToDataTable DataTable: dtPosts RowToAdd: [currentJToken['userId'], currentJToken['id'], currentJToken['title'], currentJToken['body']]
+END
+
+# node_id=CrudOperation.00059.6ab798c3; package=File; action=assign; resolved=assign
+SET excelPath TO $'''%Environment.CurrentDirectory%\User_1_all_posts.xlsx'''
+
+# node_id=CrudOperation.00060.677be5f3; package=If; action=if; resolved=if
+IF (File.IfFile.Exists File: excelPath) THEN
+    # node_id=CrudOperation.00061.a6119d32; package=Excel; action=excelScope; resolved=launch excel
+    Excel.LaunchExcel.LaunchAndOpen Path: excelPath Visible: True ReadOnly: False LoadAddInsAndMacros: False Instance=> ExcelInstance
+
+# node_id=CrudOperation.00062.e4f23b59; package=If; action=else; resolved=else
+ELSE
+    # node_id=CrudOperation.00063.421a46f7; package=Excel; action=excelScope; resolved=launch excel
+    Excel.LaunchExcel.Launch Visible: True LoadAddInsAndMacros: False Instance=> ExcelInstance
+END
+
+# node_id=CrudOperation.00064.40abb048; package=Excel; action=setActiveWorksheet; resolved=set active worksheet
+Excel.SetActiveWorksheet.ActivateWorksheetByName Instance: ExcelInstance Name: $'''Sheet1'''
+
+# node_id=CrudOperation.00065.9b4adab3; package=Excel; action=writeCell; resolved=write to excel
+Excel.WriteToExcel.WriteFromDataTable Instance: ExcelInstance DataTable: dtPosts WorksheetName: $'''Sheet1''' FirstCell: $'''A1''' IncludeHeaders: True ClearWorksheet: True
+
+# node_id=CrudOperation.00066.cb926116; package=Excel; action=closeExcel; resolved=close excel
+Excel.CloseExcel.CloseAndSaveAs Instance: ExcelInstance DocumentFormat: Excel.ExcelFormat.FromExtension DocumentPath: excelPath
