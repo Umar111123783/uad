@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Extracted cache/temp data
+extracted_projects/
+
+# Environment variables & secrets
+.env
+.env.*
+*.key
+*.token
+
+# OS generated files
+.DS_Store
+Thumbs.db
